@@ -172,7 +172,12 @@ static void bntParseClicked(GtkButton *button, GtkTextView *textview) {
 	pNextChar = str;
 	gtk_tree_store_clear(model);
 	if (setjmp(parse_sigjmp_buf) == 0) {
-		getNode(NULL, 0, "", "");
+		if ('{' == *str)
+			getNode(NULL, 0, "", "");
+		else if ('(' == *str)
+			getList(NULL, 0, "", "");
+		else
+			fprintf(stderr, "Первый символ должен быть или (, или {\n");
 	}
 	g_free(str);
 	gtk_tree_view_expand_all(tree);
