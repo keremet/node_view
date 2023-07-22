@@ -20,7 +20,19 @@ static GtkTreeView *tree;
 static char *pNextChar;
 static sigjmp_buf parse_sigjmp_buf;
 
-static void getNode(GtkTreeIter* parent, const char* propName);
+static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, const char* propName);
+
+static const char* propNameWithLevel(int level, const char* parentNodeName, const char* propname) {
+	if (level <= 0)
+		return propname;
+
+	static char buf[200];
+	if (0 == *parentNodeName && 0 == *propname)
+		snprintf(buf, sizeof(buf), "%i_", level);
+	else
+		snprintf(buf, sizeof(buf), "%i_%s.%s", level, parentNodeName, propname);
+	return buf;
+}
 
 static char getNextChar() {
 	if (0 == *pNextChar) {
@@ -36,7 +48,7 @@ static void skipSpace() {
 	pNextChar--;
 }
 
-static void getList(GtkTreeIter* parent, const char* propName) {
+static void getList(GtkTreeIter* parent, int level, const char* parentNodeName, const char* propName) {
 	skipSpace();
 	if (getNextChar() != '(') {
 		fprintf(stderr, "Список должен начинаться с круглой скобки\n");
@@ -48,7 +60,7 @@ static void getList(GtkTreeIter* parent, const char* propName) {
 	gtk_tree_store_append (model, &iter, parent);
 	gtk_tree_store_set (model, &iter,
 						NODE_COLUMN, "Список",
-						PROP_COLUMN, propName,
+						PROP_COLUMN, propNameWithLevel(level, parentNodeName, propName),
 						-1);
 	if (')' == *pNextChar) {
 		getNextChar();
@@ -64,7 +76,7 @@ static void getList(GtkTreeIter* parent, const char* propName) {
 			}
 	
 			if ('{' == *pNextChar)
-				getNode(&iter, "");
+				getNode(&iter, level + 1, "", "");
 
 			skipSpace();
 		}
@@ -77,7 +89,7 @@ static void getList(GtkTreeIter* parent, const char* propName) {
 }
 
 // true - прочитаны только свойства, false - прочитана завершающая фигурная скобка узла
-static bool getNodeProps(GtkTreeIter* parent) {	
+static bool getNodeProps(GtkTreeIter* parent, int level, const char* parentNodeName) {	
 	for (bool bracketIsNotReaded = true; bracketIsNotReaded;) {
 		skipSpace();
 		if (getNextChar() != ':') {
@@ -92,9 +104,9 @@ static bool getNodeProps(GtkTreeIter* parent) {
 		skipSpace();
 		const char* propValue = pNextChar;
 		if ('{' == *propValue)
-			getNode(parent, propName);
+			getNode(parent, level, parentNodeName, propName);
 		else if ('(' == *propValue)
-			getList(parent, propName);
+			getList(parent, level, parentNodeName, propName);
 		else {
 			if (':' == *propValue)
 				propValue = "";
@@ -117,14 +129,14 @@ static bool getNodeProps(GtkTreeIter* parent) {
 			gtk_tree_store_append (model, &iter, parent);
 			gtk_tree_store_set (model, &iter,
 								NODE_COLUMN, "",
-								PROP_COLUMN, propName,
+								PROP_COLUMN, propNameWithLevel(level, parentNodeName, propName),
 								VALUE_COLUMN, propValue,
 								-1);
 		}
 	}
 }
 
-static void getNode(GtkTreeIter* parent, const char* propName) {
+static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, const char* propName) {
 	skipSpace();
 	if (getNextChar() != '{') {
 		fprintf(stderr, "Узел должен начинаться с фигурной скобки\n");
@@ -140,10 +152,10 @@ static void getNode(GtkTreeIter* parent, const char* propName) {
 	gtk_tree_store_append (model, &iter, parent);
 	gtk_tree_store_set (model, &iter,
 						NODE_COLUMN, nodeName,
-						PROP_COLUMN, propName,
+						PROP_COLUMN, propNameWithLevel(level, parentNodeName, propName),
 						VALUE_COLUMN, "",
 						-1);	
-	if (getNodeProps(&iter)) {
+	if (getNodeProps(&iter, level + 1, nodeName)) {
 		skipSpace();
 		if (getNextChar() != '}')
 		{
@@ -160,7 +172,7 @@ static void bntParseClicked(GtkButton *button, GtkTextView *textview) {
 	pNextChar = str;
 	gtk_tree_store_clear(model);
 	if (setjmp(parse_sigjmp_buf) == 0) {
-		getNode(NULL, "");
+		getNode(NULL, 0, "", "");
 	}
 	g_free(str);
 	gtk_tree_view_expand_all(tree);
