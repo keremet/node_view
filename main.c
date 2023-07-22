@@ -168,7 +168,6 @@ static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, 
 static void bntParseClicked(GtkButton *button, GtkTextView *textview) {
 	char* str;
 	g_object_get(gtk_text_view_get_buffer(textview), "text", &str, NULL);
-	printf("%s\n", str);
 	pNextChar = str;
 	gtk_tree_store_clear(model);
 	if (setjmp(parse_sigjmp_buf) == 0) {
