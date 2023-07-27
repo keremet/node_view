@@ -94,6 +94,16 @@ static void getList(GtkTreeIter* parent, int level, const char* parentNodeName, 
 				longjmp(parse_sigjmp_buf, 1);
 			}
 		}
+	} else if ('(' == *pNextChar) {
+		do {
+			getList(&iter, level + 1, parentNodeName, propName);
+			skipSpace();
+		} while ('(' == *pNextChar);
+
+		if (')' != getNextChar()) {
+			errorText = "Список списков должен закрываться круглой скобкой";
+			longjmp(parse_sigjmp_buf, 1);
+		}
 	} else {
 		const char* propValue = pNextChar;
 		while (getNextChar() != ')');
@@ -112,8 +122,16 @@ static bool getNodeProps(GtkTreeIter* parent, int level, const char* parentNodeN
 		}
 	
 		const char* propName = pNextChar;
-		while (!isspace(getNextChar()));
-		*(pNextChar - 1) = '\0';
+		for(;;) {
+			char c = getNextChar();
+			if ('}' == c){
+				pNextChar--;
+				break;
+			} else if (isspace(c)) {
+				*(pNextChar - 1) = '\0';
+				break;
+			}
+		}
 	
 		skipSpace();
 		const char* propValue = pNextChar;
@@ -136,6 +154,9 @@ static bool getNodeProps(GtkTreeIter* parent, int level, const char* parentNodeN
 						break;
 				};
 
+				if ('[' == *pNextChar)
+					while (getNextChar() != ']');
+					
 				*(pNextChar - 1) = '\0';
 			}
 
