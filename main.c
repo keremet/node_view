@@ -78,13 +78,13 @@ static void getList(GtkTreeIter* parent, int level, const char* parentNodeName, 
 		return;
 	}
 
-	if ('{' == *pNextChar) {		
+	if ('{' == *pNextChar) {
 		for (;;) {
 			if (')' == *pNextChar) {
 				getNextChar();
 				break;
 			}
-	
+
 			if ('{' == *pNextChar)
 				getNode(&iter, level + 1, "", "");
 			else if (isspace(*pNextChar))
@@ -120,7 +120,7 @@ static bool getNodeProps(GtkTreeIter* parent, int level, const char* parentNodeN
 			pNextChar--;
 			return bracketIsNotReaded;
 		}
-	
+
 		const char* propName = pNextChar;
 		for(;;) {
 			char c = getNextChar();
@@ -132,7 +132,7 @@ static bool getNodeProps(GtkTreeIter* parent, int level, const char* parentNodeN
 				break;
 			}
 		}
-	
+
 		skipSpace();
 		const char* propValue = pNextChar;
 		if ('{' == *propValue)
@@ -189,7 +189,7 @@ static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, 
 						NODE_COLUMN, nodeName,
 						PROP_COLUMN, propNameWithLevel(level, parentNodeName, propName),
 						VALUE_COLUMN, "",
-						-1);	
+						-1);
 	if (getNodeProps(&iter, level + 1, nodeName)) {
 		skipSpace();
 		if (getNextChar() != '}')
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
 							-1);
 				gtk_container_add (GTK_CONTAINER (sw_text), textview);
 			gtk_box_pack_start (GTK_BOX (hbox), sw_text, TRUE, TRUE, 0);
-	
+
 			GtkWidget *btnParse = gtk_button_new_with_label ("Разбор");
 				g_signal_connect (btnParse, "clicked",  G_CALLBACK (bntParseClicked), textview);
 			gtk_box_pack_start (GTK_BOX (hbox), btnParse, FALSE, FALSE, 0);
