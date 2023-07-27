@@ -19,6 +19,7 @@ static GtkTreeStore *model;
 static GtkTreeView *tree;
 static char *pNextChar;
 static sigjmp_buf parse_sigjmp_buf;
+static const char* errorText = "";
 
 static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, const char* propName);
 
@@ -34,19 +35,19 @@ static const char* propNameWithLevel(int level, const char* parentNodeName, cons
 	return buf;
 }
 
-static void showError(const char* msg) {
+static void showError(const char* msg, int pos) {
 	GtkWidget *dialog = gtk_message_dialog_new (0/*parent_window*/,
 			0,
 			GTK_MESSAGE_ERROR,
 			GTK_BUTTONS_CLOSE,
-			"%s", msg);
+			"%s. Позиция %i", msg, pos);
 	gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (dialog);
 }
 
 static char getNextChar() {
 	if (0 == *pNextChar) {
-		showError("Неожиданный конец строки\n");
+		errorText = "Неожиданный конец строки";
 		longjmp(parse_sigjmp_buf, 1);
 	}
 
@@ -61,7 +62,7 @@ static void skipSpace() {
 static void getList(GtkTreeIter* parent, int level, const char* parentNodeName, const char* propName) {
 	skipSpace();
 	if (getNextChar() != '(') {
-		showError("Список должен начинаться с круглой скобки\n");
+		errorText = "Список должен начинаться с круглой скобки";
 		longjmp(parse_sigjmp_buf, 1);
 	}
 	skipSpace();
@@ -89,7 +90,7 @@ static void getList(GtkTreeIter* parent, int level, const char* parentNodeName, 
 			else if (isspace(*pNextChar))
 				skipSpace();
 			else {
-				showError("Неожиданный символ");
+				errorText = "Неожиданный символ";
 				longjmp(parse_sigjmp_buf, 1);
 			}
 		}
@@ -152,7 +153,7 @@ static bool getNodeProps(GtkTreeIter* parent, int level, const char* parentNodeN
 static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, const char* propName) {
 	skipSpace();
 	if (getNextChar() != '{') {
-		showError("Узел должен начинаться с фигурной скобки\n");
+		errorText = "Узел должен начинаться с фигурной скобки";
 		longjmp(parse_sigjmp_buf, 1);
 	}
 	skipSpace();
@@ -172,7 +173,7 @@ static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, 
 		skipSpace();
 		if (getNextChar() != '}')
 		{
-			showError("Узел должен заканчиваться фигурной скобкой");
+			errorText = "Узел должен заканчиваться фигурной скобкой";
 			longjmp(parse_sigjmp_buf, 1);
 		}
 	}
@@ -189,7 +190,10 @@ static void bntParseClicked(GtkButton *button, GtkTextView *textview) {
 		else if ('(' == *str)
 			getList(NULL, 0, "", "");
 		else
-			showError("Первый символ должен быть или (, или {\n");
+			showError("Первый символ должен быть или (, или {\n", 1);
+	} else {
+		showError(errorText, pNextChar - str);
+		errorText = "";
 	}
 	g_free(str);
 	gtk_tree_view_expand_all(tree);
