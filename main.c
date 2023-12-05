@@ -200,7 +200,7 @@ static void getNode(GtkTreeIter* parent, int level, const char* parentNodeName, 
 	}
 }
 
-static void bntParseClicked(GtkButton *button, GtkTextView *textview) {
+static void btnParseClicked(GtkButton *button, GtkTextView *textview) {
 	char* str;
 	g_object_get(gtk_text_view_get_buffer(textview), "text", &str, NULL);
 	pNextChar = str;
@@ -217,7 +217,13 @@ static void bntParseClicked(GtkButton *button, GtkTextView *textview) {
 		errorText = "";
 	}
 	g_free(str);
-	gtk_tree_view_expand_all(tree);
+
+	gtk_tree_view_expand_row(tree, gtk_tree_path_new_first(), FALSE);
+}
+
+static void btnCleanClicked(GtkButton *button, GtkTextView *textview) {
+	gtk_text_buffer_set_text(gtk_text_view_get_buffer(textview), "", -1);
+	gtk_tree_store_clear(model);
 }
 
 int main(int argc, char **argv) {
@@ -245,8 +251,11 @@ int main(int argc, char **argv) {
 			gtk_box_pack_start (GTK_BOX (hbox), sw_text, TRUE, TRUE, 0);
 
 			GtkWidget *btnParse = gtk_button_new_with_label ("Разбор");
-				g_signal_connect (btnParse, "clicked",  G_CALLBACK (bntParseClicked), textview);
+				g_signal_connect (btnParse, "clicked",  G_CALLBACK (btnParseClicked), textview);
 			gtk_box_pack_start (GTK_BOX (hbox), btnParse, FALSE, FALSE, 0);
+			GtkWidget *btnClean = gtk_button_new_with_label ("Очистка");
+				g_signal_connect (btnClean, "clicked",  G_CALLBACK (btnCleanClicked), textview);
+			gtk_box_pack_start (GTK_BOX (hbox), btnClean, FALSE, FALSE, 0);
 		gtk_paned_add1 (GTK_PANED (vpaned), hbox);
 
 		GtkWidget *sw_tree = gtk_scrolled_window_new (NULL, NULL);
